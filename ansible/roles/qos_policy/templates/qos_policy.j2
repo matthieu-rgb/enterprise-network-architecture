@@ -1,0 +1,141 @@
+! ============================================================
+! QoS Policy — {{ inventory_hostname }}
+! Généré par Ansible — NE PAS MODIFIER MANUELLEMENT
+!
+! La QoS garantit que le trafic critique (voix, vidéo)
+! passe toujours en premier, même quand le réseau est saturé.
+!
+! Analogie : c'est comme une autoroute avec une voie
+! réservée aux ambulances.
+! ============================================================
+
+! --- Activer QoS globalement ---
+mls qos
+
+! ============================================================
+! ÉTAPE 1 : Class Maps — Identifier le trafic
+! "Quel type de trafic est-ce ?"
+! ============================================================
+
+! Voix — RTP (flux audio des appels)
+class-map match-any CM_VOICE
+ match ip dscp ef
+ match ip dscp cs5
+ match access-group name ACL_VOICE
+
+! Vidéo — Visioconférence
+class-map match-any CM_VIDEO
+ match ip dscp af41
+ match ip dscp af42
+ match access-group name ACL_VIDEO
+
+! Signalisation — SIP, SCCP (contrôle des appels)
+class-map match-any CM_SIGNALING
+ match ip dscp cs3
+ match ip dscp af31
+ match access-group name ACL_SIGNALING
+
+! Applications métier — ERP, CRM, bases de données
+class-map match-any CM_BUSINESS
+ match ip dscp af21
+ match access-group name ACL_BUSINESS
+
+! ============================================================
+! ÉTAPE 2 : Policy Maps — Définir le traitement
+! "Comment traiter chaque type de trafic ?"
+! ============================================================
+
+! --- Politique pour les ports d'accès (marquage) ---
+policy-map PM_ACCESS_MARKING
+ ! Voix : priorité absolue, bande passante garantie
+ class CM_VOICE
+  set ip dscp ef
+  priority percent 10
+ ! Vidéo : haute priorité
+ class CM_VIDEO
+  set ip dscp af41
+  bandwidth percent 20
+ ! Signalisation : garantie mais faible volume
+ class CM_SIGNALING
+  set ip dscp cs3
+  bandwidth percent 5
+ ! Applications métier : garantie standard
+ class CM_BUSINESS
+  set ip dscp af21
+  bandwidth percent 25
+ ! Tout le reste : best effort
+ class class-default
+  set ip dscp default
+  bandwidth percent 40
+  random-detect
+
+! --- Politique pour les uplinks (queuing) ---
+policy-map PM_UPLINK_QUEUING
+ class CM_VOICE
+  priority percent 10
+ class CM_VIDEO
+  bandwidth percent 20
+  random-detect dscp-based
+ class CM_SIGNALING
+  bandwidth percent 5
+ class CM_BUSINESS
+  bandwidth percent 25
+  random-detect dscp-based
+ class class-default
+  bandwidth percent 40
+  random-detect
+
+! ============================================================
+! ÉTAPE 3 : ACLs — Identifier le trafic par flux
+! ============================================================
+
+! Voix — Ports RTP typiques
+ip access-list extended ACL_VOICE
+ permit udp any any range 16384 32767
+
+! Vidéo — Ports visioconférence (Zoom, Teams, Webex)
+ip access-list extended ACL_VIDEO
+ permit udp any any range 3478 3497
+ permit tcp any any eq 443
+
+! Signalisation — SIP
+ip access-list extended ACL_SIGNALING
+ permit tcp any any eq 5060
+ permit udp any any eq 5060
+ permit tcp any any eq 5061
+
+! Applications métier — ERP, CRM, DB
+ip access-list extended ACL_BUSINESS
+ permit tcp any host 10.10.20.0 0.0.0.255 eq 27017
+ permit tcp any host 10.10.10.0 0.0.0.255 eq 443
+
+! ============================================================
+! ÉTAPE 4 : Application sur les interfaces
+! ============================================================
+
+{% if 'access_switches' in group_names %}
+! --- Switches d'accès : marquage du trafic entrant ---
+! On fait confiance au DSCP des téléphones IP (trust dscp)
+! et on marque le reste selon les class-maps
+interface range {{ access_port_range | default('GigabitEthernet1/0/1-48') }}
+ mls qos trust dscp
+ service-policy input PM_ACCESS_MARKING
+
+! Uplinks vers Distribution : queuing en sortie
+{% for uplink in trunk_uplinks | default(['GigabitEthernet1/0/49', 'GigabitEthernet1/0/50']) %}
+interface {{ uplink }}
+ service-policy output PM_UPLINK_QUEUING
+{% endfor %}
+{% endif %}
+
+{% if 'distribution_switches' in group_names %}
+! --- Switches de distribution : trust le marquage des access ---
+! Pas de re-marquage, juste du queuing sur les uplinks
+interface range {{ access_facing_ports | default('GigabitEthernet1/0/1-12') }}
+ mls qos trust dscp
+
+{% for uplink in core_uplinks | default(['TenGigabitEthernet1/0/1', 'TenGigabitEthernet1/0/2']) %}
+interface {{ uplink }}
+ service-policy output PM_UPLINK_QUEUING
+{% endfor %}
+{% endif %}

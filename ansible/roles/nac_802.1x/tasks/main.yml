@@ -1,0 +1,82 @@
+---
+# roles/nac_802.1x/tasks/main.yml
+# Configure 802.1X sur les switches d'accès pour l'intégration avec Cisco ISE
+# Trois méthodes d'authentification :
+#   1. 802.1X (EAP-TLS/PEAP) → Laptops employés
+#   2. MAB (MAC Auth Bypass)  → IoT, caméras, imprimantes
+#   3. Portail captif (WebAuth) → Visiteurs (géré par ISE)
+
+# --- Activer AAA (Authentication, Authorization, Accounting) ---
+- name: Enable AAA globally
+  cisco.ios.ios_config:
+    lines:
+      - aaa new-model
+      - aaa authentication dot1x default group radius
+      - aaa authorization network default group radius
+      - aaa accounting dot1x default start-stop group radius
+      - aaa accounting update periodic 15
+
+# --- Configurer les serveurs RADIUS (Cisco ISE) ---
+- name: Configure RADIUS servers (Cisco ISE)
+  cisco.ios.ios_config:
+    lines:
+      - "radius server ISE-{{ idx + 1 }}"
+      - " address ipv4 {{ item.host }} auth-port {{ item.port }} acct-port {{ item.port | int + 1 }}"
+      - " key {{ item.key }}"
+      - " automate-tester username probe-user idle-time 5"
+    parents: []
+  loop: "{{ radius_servers }}"
+  loop_control:
+    index_var: idx
+  no_log: true    # Ne pas logger les clés RADIUS
+
+# --- Groupe de serveurs RADIUS ---
+- name: Configure RADIUS server group
+  cisco.ios.ios_config:
+    lines:
+      - aaa group server radius ISE-GROUP
+      - " server name ISE-1"
+      - " server name ISE-2"
+      - " deadtime 10"
+
+# --- Activer 802.1X globalement ---
+- name: Enable 802.1X globally
+  cisco.ios.ios_config:
+    lines:
+      - dot1x system-auth-control
+
+# --- Activer CoA (Change of Authorization) pour ISE ---
+# CoA permet à ISE de modifier dynamiquement l'accès d'un port
+# (ex: basculer de quarantaine vers VLAN employé après remédiation)
+- name: Enable RADIUS CoA (Change of Authorization)
+  cisco.ios.ios_config:
+    lines:
+      - "aaa server radius dynamic-author"
+      - " client {{ item.host }} server-key {{ item.key }}"
+      - " auth-type any"
+  loop: "{{ radius_servers }}"
+  no_log: true
+
+# --- Déployer la config 802.1X sur les ports d'accès ---
+- name: Deploy 802.1X configuration on access ports
+  cisco.ios.ios_config:
+    src: dot1x_port.j2
+  notify: save_config
+
+# --- Vérification ---
+- name: Verify 802.1X status
+  cisco.ios.ios_command:
+    commands:
+      - show dot1x all summary
+      - show authentication sessions
+  register: dot1x_output
+
+- name: Display 802.1X status
+  debug:
+    msg: "{{ dot1x_output.stdout_lines }}"
+    verbosity: 1
+
+handlers:
+  - name: save_config
+    cisco.ios.ios_config:
+      save_when: modified

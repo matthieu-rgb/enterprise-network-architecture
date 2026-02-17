@@ -1,0 +1,25 @@
+---
+# roles/qos_policy/tasks/main.yml
+# Configure la QoS sur les switches pour prioriser le trafic critique
+#
+# Principes :
+#   - Le marquage DSCP se fait au plus près de la source (switches d'accès)
+#   - Les switches de distribution et core font confiance au marquage (trust)
+#   - La VoIP et la visio sont prioritaires sur tout le reste
+#
+# Classes de trafic GreenTech :
+#   🔴 VOIX      → DSCP EF (46)    — Priorité absolue
+#   🟠 VIDEO     → DSCP AF41 (34)  — Priorité haute
+#   🟡 SIGNALING → DSCP CS3 (24)   — Contrôle appels SIP
+#   🔵 BUSINESS  → DSCP AF21 (18)  — ERP, Salesforce, bases de données
+#   🟢 DEFAULT   → DSCP 0          — Web, email, reste
+
+- name: Deploy QoS policy configuration
+  cisco.ios.ios_config:
+    src: qos_policy.j2
+  notify: save_config
+
+handlers:
+  - name: save_config
+    cisco.ios.ios_config:
+      save_when: modified

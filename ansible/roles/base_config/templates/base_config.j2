@@ -1,0 +1,57 @@
+! ============================================================
+! Base Configuration — {{ inventory_hostname }}
+! Généré par Ansible — NE PAS MODIFIER MANUELLEMENT
+! Date : {{ ansible_date_time.iso8601 | default('N/A') }}
+! ============================================================
+
+! --- Bannière de connexion ---
+banner login ^
+{{ login_banner }}
+^
+
+! --- Services de base ---
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+no ip http server
+no ip http secure-server
+
+! --- Sécurité console et VTY ---
+line console 0
+ logging synchronous
+ exec-timeout 15 0
+ login local
+!
+line vty 0 15
+ logging synchronous
+ exec-timeout 15 0
+ transport input ssh
+ login local
+!
+
+! --- SSH v2 uniquement ---
+ip ssh version 2
+ip ssh time-out 60
+ip ssh authentication-retries 3
+
+! --- Syslog ---
+logging trap informational
+logging facility local7
+{% for server in syslog_servers %}
+logging host {{ server.host }} transport {{ server.protocol }} port {{ server.port }}
+{% endfor %}
+logging source-interface Loopback0
+
+! --- SNMP ---
+snmp-server community {{ snmp_community_ro }} RO
+snmp-server contact {{ snmp_contact }}
+snmp-server location {{ snmp_location }}
+{% for server in syslog_servers %}
+snmp-server host {{ server.host }} version 2c {{ snmp_community_ro }}
+{% endfor %}
+
+! --- Archive (pour Oxidized et rollback) ---
+archive
+ path flash:archive-config
+ maximum 5
+ write-memory

@@ -1,0 +1,60 @@
+---
+# roles/vlan_management/tasks/main.yml
+# Crée tous les VLANs définis et configure les trunks et ports d'accès
+# Les VLANs sont définis dans vars/main.yml
+
+# --- Créer tous les VLANs ---
+- name: Create all VLANs
+  cisco.ios.ios_vlans:
+    config:
+      - vlan_id: "{{ item.id }}"
+        name: "{{ item.name }}"
+        state: active
+    state: merged
+  loop: "{{ vlans }}"
+
+# --- Créer le VLAN Native (999 — non utilisé, sécurité) ---
+- name: Create native VLAN (security - unused)
+  cisco.ios.ios_vlans:
+    config:
+      - vlan_id: "{{ vlan_native }}"
+        name: VLAN_NATIVE_UNUSED
+        state: active
+    state: merged
+
+# --- Configurer les trunks vers Distribution ---
+- name: Configure trunk uplinks to distribution
+  cisco.ios.ios_config:
+    lines:
+      - description UPLINK_TO_DISTRIBUTION
+      - switchport mode trunk
+      - switchport trunk allowed vlan {{ vlans | map(attribute='id') | join(',') }}
+      - switchport trunk native vlan {{ vlan_native }}
+      - switchport nonegotiate
+    parents: "interface {{ item }}"
+  loop: "{{ trunk_uplinks | default(['GigabitEthernet1/0/49', 'GigabitEthernet1/0/50']) }}"
+
+# --- Configurer les ports d'accès par défaut ---
+# Note : le VLAN réel est assigné dynamiquement par le NAC (802.1X)
+# Ce VLAN est le fallback si le NAC n'a pas encore répondu
+- name: Configure access ports (default VLAN before NAC assignment)
+  cisco.ios.ios_config:
+    lines:
+      - description ACCESS_PORT_NAC_CONTROLLED
+      - switchport mode access
+      - switchport access vlan {{ vlan_native }}
+      - switchport voice vlan {{ voice_vlan | default(70) }}
+      - switchport nonegotiate
+    parents: "interface range {{ access_port_range | default('GigabitEthernet1/0/1-48') }}"
+
+# --- Vérification ---
+- name: Verify VLANs are created
+  cisco.ios.ios_command:
+    commands:
+      - show vlan brief
+  register: vlan_output
+
+- name: Display VLAN status
+  debug:
+    msg: "{{ vlan_output.stdout_lines }}"
+    verbosity: 1

@@ -1,0 +1,26 @@
+---
+# netbox_inventory.yml — Inventaire dynamique depuis NetBox
+# Doc : https://docs.ansible.com/ansible/latest/collections/netbox/netbox/nb_inventory_inventory.html
+#
+# Ansible interroge l'API NetBox pour construire automatiquement
+# la liste des équipements. Plus besoin de fichier statique.
+
+plugin: netbox.netbox.nb_inventory
+api_endpoint: https://netbox.greentech-dynamics.local
+token: "{{ lookup('env', 'NETBOX_API_TOKEN') }}"
+validate_certs: true
+
+# Grouper les équipements automatiquement
+group_by:
+  - site                # → group: Lyon, Paris, SanFrancisco
+  - device_role         # → group: access_switch, distribution_switch, core_switch, firewall
+  - platform            # → group: ios, fortios, nxos
+
+# Variables injectées depuis NetBox
+compose:
+  ansible_host: primary_ip4.address | ansible.utils.ipaddr('address')
+  ansible_network_os: platform.slug
+
+# Filtrer uniquement les équipements actifs
+query_filters:
+  - status: active

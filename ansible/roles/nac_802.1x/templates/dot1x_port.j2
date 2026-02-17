@@ -1,0 +1,94 @@
+! ============================================================
+! 802.1X / NAC Port Configuration — {{ inventory_hostname }}
+! Généré par Ansible — NE PAS MODIFIER MANUELLEMENT
+!
+! Politique d'authentification par port :
+!   1. Tente 802.1X (EAP) pendant 30 secondes
+!   2. Si pas de réponse EAP → tente MAB (MAC auth)
+!   3. Si MAB échoue → VLAN Guest ou bloqué selon politique ISE
+!
+! Le VLAN final est assigné DYNAMIQUEMENT par Cisco ISE
+! via les attributs RADIUS (Tunnel-Private-Group-ID)
+! ============================================================
+
+interface range {{ access_port_range | default('GigabitEthernet1/0/1-48') }}
+
+ ! --- Mode d'authentification ---
+ ! multi-auth : permet plusieurs appareils par port
+ ! (laptop + téléphone IP sur le même port)
+ authentication host-mode multi-auth
+
+ ! --- Ordre des méthodes ---
+ ! dot1x d'abord, MAB en fallback
+ authentication order dot1x mab
+ authentication priority dot1x mab
+
+ ! --- Activer 802.1X sur le port ---
+ dot1x pae authenticator
+
+ ! --- Timeout 802.1X : 30 secondes avant fallback MAB ---
+ dot1x timeout tx-period 10
+ dot1x max-reauth-req 3
+
+ ! --- Activer MAB (pour IoT, imprimantes, caméras) ---
+ mab
+
+ ! --- Ré-authentification périodique ---
+ ! ISE peut pousser un timer via RADIUS
+ authentication periodic
+ authentication timer reauthenticate server
+
+ ! --- VLAN invité si toute authentification échoue ---
+ authentication event fail action authorize vlan {{ vlan_guest | default(100) }}
+
+ ! --- Fail-open : si le serveur RADIUS est injoignable ---
+ ! Autorise l'accès pour ne pas bloquer les utilisateurs
+ ! MAIS logue l'événement pour investigation
+ authentication event server dead action authorize vlan {{ vlan_failopen | default(100) }}
+ authentication event server alive action reinitialize
+
+ ! --- Port accessible avant authentification (pour DHCP/DNS) ---
+ ! Mode closed = bloqué par défaut, open = autorisé par défaut
+ authentication open
+
+ ! --- Portfast obligatoire avec 802.1X ---
+ spanning-tree portfast
+
+!
+! ============================================================
+! Configuration des ports de téléphones IP
+! Le téléphone utilise le VLAN voix (CDP/LLDP)
+! Le laptop derrière le téléphone utilise 802.1X
+! ============================================================
+
+{% for phone_port in phone_ports | default([]) %}
+interface {{ phone_port }}
+ description PHONE_PORT_WITH_PC_PASSTHROUGH
+ switchport mode access
+ switchport voice vlan {{ voice_vlan | default(70) }}
+ authentication host-mode multi-domain
+ ! multi-domain : un appareil data (laptop) + un appareil voix (téléphone)
+ ! Le téléphone s'authentifie par CDP/LLDP → VLAN voix
+ ! Le laptop s'authentifie par 802.1X → VLAN data (dynamique ISE)
+!
+{% endfor %}
+
+! ============================================================
+! Ports spécifiques IoT (connus, profiling activé)
+! Ces ports sont en MAB seul (pas de 802.1X)
+! ISE identifie l'appareil par sa MAC + profiling
+! ============================================================
+
+{% for iot_port in iot_dedicated_ports | default([]) %}
+interface {{ iot_port.interface }}
+ description {{ iot_port.description | default('IOT_DEVICE') }}
+ switchport mode access
+ switchport access vlan {{ vlan_iot | default(50) }}
+ authentication host-mode single-host
+ authentication order mab
+ mab
+ dot1x pae authenticator
+ dot1x timeout tx-period 5
+ spanning-tree portfast
+!
+{% endfor %}

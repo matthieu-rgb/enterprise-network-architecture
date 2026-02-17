@@ -1,0 +1,48 @@
+---
+# site.yml — Playbook principal GreenTech Dynamics
+# Déploie la configuration complète sur tous les équipements réseau
+#
+# Usage :
+#   ansible-playbook -i inventory/netbox_inventory.yml site.yml --check --diff  (dry run)
+#   ansible-playbook -i inventory/netbox_inventory.yml site.yml                 (déploiement)
+
+# ============================================================
+# 1. Configuration de base — Tous les équipements
+# ============================================================
+- name: Apply base configuration to all network devices
+  hosts: all
+  gather_facts: no
+  roles:
+    - base_config
+    - monitoring_agent
+
+# ============================================================
+# 2. Switches d'accès campus — Sécurité L2 + VLANs + NAC
+# ============================================================
+- name: Configure access layer switches
+  hosts: access_switches
+  gather_facts: no
+  roles:
+    - vlan_management
+    - security_hardening
+    - nac_802.1x
+    - qos_policy
+
+# ============================================================
+# 3. Switches de distribution — VLANs + QoS
+# ============================================================
+- name: Configure distribution switches
+  hosts: distribution_switches
+  gather_facts: no
+  roles:
+    - vlan_management
+    - qos_policy
+
+# ============================================================
+# 4. Switches Core — QoS uniquement (VLANs routés en L3)
+# ============================================================
+- name: Configure core switches
+  hosts: core_switches
+  gather_facts: no
+  roles:
+    - qos_policy

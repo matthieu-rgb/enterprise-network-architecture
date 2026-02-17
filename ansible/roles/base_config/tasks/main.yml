@@ -1,0 +1,41 @@
+---
+# roles/base_config/tasks/main.yml
+# Configure les paramètres de base sur tous les équipements réseau :
+# hostname, bannière, NTP, DNS, syslog, SNMP
+
+- name: Deploy base configuration from template
+  cisco.ios.ios_config:
+    src: base_config.j2
+  notify: save_config
+
+- name: Set hostname
+  cisco.ios.ios_hostname:
+    config:
+      hostname: "{{ inventory_hostname }}"
+    state: merged
+
+- name: Configure NTP servers
+  cisco.ios.ios_ntp_global:
+    config:
+      servers:
+        - server: "{{ item }}"
+          prefer: "{{ loop.first | ternary(true, false) }}"
+    state: merged
+  loop: "{{ ntp_servers }}"
+
+- name: Configure DNS servers
+  cisco.ios.ios_config:
+    lines:
+      - "ip name-server {{ dns_servers | join(' ') }}"
+      - "ip domain name {{ domain_name }}"
+
+- name: Configure timezone (Europe/Paris)
+  cisco.ios.ios_config:
+    lines:
+      - "clock timezone CET 1 0"
+      - "clock summer-time CEST recurring last Sun Mar 2:00 last Sun Oct 3:00"
+
+handlers:
+  - name: save_config
+    cisco.ios.ios_config:
+      save_when: modified

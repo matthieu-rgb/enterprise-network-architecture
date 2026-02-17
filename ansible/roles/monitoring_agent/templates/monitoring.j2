@@ -1,0 +1,72 @@
+! ============================================================
+! Monitoring Configuration — {{ inventory_hostname }}
+! Généré par Ansible — NE PAS MODIFIER MANUELLEMENT
+!
+! Intégrations :
+!   Zabbix    → SNMP polling (métriques CPU, mémoire, interfaces)
+!   Splunk    → Syslog (événements sécurité, authentification)
+!   Grafana   → Données Zabbix (dashboards visuels)
+! ============================================================
+
+! --- SNMPv2c pour Zabbix ---
+snmp-server community {{ snmp_community_ro }} RO
+snmp-server contact {{ snmp_contact }}
+snmp-server location {{ snmp_location }}
+
+! Limiter l'accès SNMP au réseau de management uniquement
+ip access-list standard ACL_SNMP_PERMIT
+ permit 10.100.200.0 0.0.0.255
+ deny any log
+
+snmp-server community {{ snmp_community_ro }} RO ACL_SNMP_PERMIT
+
+! --- SNMP Traps vers Zabbix ---
+! Alertes push pour les événements critiques
+{% for server in syslog_servers %}
+snmp-server host {{ server.host }} version 2c {{ snmp_community_ro }}
+{% endfor %}
+
+! Types de traps activés
+snmp-server enable traps snmp authentication linkdown linkup coldstart
+snmp-server enable traps config
+snmp-server enable traps cpu threshold
+snmp-server enable traps envmon
+snmp-server enable traps port-security
+snmp-server enable traps dot1x
+snmp-server enable traps stpx
+
+! Interface source pour SNMP (stabilité)
+snmp-server source-interface Loopback0
+
+! --- Syslog vers Splunk (SIEM) ---
+logging buffered 65536 informational
+logging console critical
+
+{% for server in syslog_servers %}
+logging host {{ server.host }} transport {{ server.protocol }} port {{ server.port }}
+{% endfor %}
+
+! Source interface pour syslog
+logging source-interface Loopback0
+
+! Inclure les timestamps détaillés et le hostname
+logging facility local7
+service timestamps log datetime msec localtime show-timezone year
+service sequence-numbers
+
+! --- Logging des événements sécurité spécifiques ---
+! Ces événements sont critiques pour le SIEM
+
+! Login/logout sur le switch
+login on-success log
+login on-failure log
+
+! Changements de configuration
+archive
+ log config
+  logging enable
+  logging size 500
+  notify syslog contenttype plaintext
+
+! Événements 802.1X et NAC
+dot1x logging verbose

@@ -1,0 +1,50 @@
+! ============================================================
+! Security Hardening — {{ inventory_hostname }}
+! Généré par Ansible — NE PAS MODIFIER MANUELLEMENT
+! ============================================================
+
+! --- Protections globales couche 2 ---
+
+! Storm Control : bloque si broadcast > 80% de la bande passante
+! Protège contre les broadcast storms (appareil défaillant, boucle)
+interface range {{ access_port_range | default('GigabitEthernet1/0/1-48') }}
+ storm-control broadcast level 80.00
+ storm-control multicast level 80.00
+ storm-control action shutdown
+
+! BPDU Guard : désactive le port si un BPDU est reçu
+! Protège contre les switches non autorisés branchés par les employés
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+
+! Port Security : limite le nombre de MAC par port
+! Empêche le MAC flooding (attaque de type CAM table overflow)
+ switchport port-security
+ switchport port-security maximum 3
+ switchport port-security violation restrict
+ switchport port-security aging time 60
+ switchport port-security aging type inactivity
+!
+
+! --- DHCP Snooping Trust ---
+! Seuls les uplinks vers la distribution sont trusted (serveur DHCP légitime)
+{% for uplink in trusted_uplinks | default(['GigabitEthernet1/0/49', 'GigabitEthernet1/0/50']) %}
+interface {{ uplink }}
+ ip dhcp snooping trust
+ ip arp inspection trust
+!
+{% endfor %}
+
+! --- Désactiver les protocoles non nécessaires ---
+no cdp run
+lldp run
+no ip source-route
+no ip gratuitous-arps
+
+! --- Sécurité STP ---
+spanning-tree mode rapid-pvst
+spanning-tree loopguard default
+spanning-tree portfast bpduguard default
+errdisable recovery cause bpduguard
+errdisable recovery cause storm-control
+errdisable recovery interval 300

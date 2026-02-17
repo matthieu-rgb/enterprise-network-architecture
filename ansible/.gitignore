@@ -1,0 +1,34 @@
+# .gitignore — enterprise-network-architecture
+
+# === Secrets (JAMAIS dans Git) ===
+*.vault
+*vault*.yml
+.env
+secrets/
+credentials/
+
+# === Fichiers Ansible temporaires ===
+*.retry
+/tmp/ansible-retries/
+
+# === Logs ===
+*.log
+/var/log/ansible/
+
+# === Python ===
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# === IDE ===
+.vscode/
+.idea/
+*.code-workspace

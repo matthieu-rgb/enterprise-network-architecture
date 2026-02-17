@@ -1,0 +1,60 @@
+---
+# group_vars/all.yml — Variables globales pour tous les équipements
+# Ces variables s'appliquent à TOUS les hosts de l'inventaire
+
+# === Connexion ===
+ansible_connection: ansible.netcommon.network_cli
+ansible_user: "{{ lookup('env', 'NETWORK_USER') }}"
+ansible_password: "{{ lookup('env', 'NETWORK_PASSWORD') }}"
+ansible_become: yes
+ansible_become_method: enable
+
+# === Informations entreprise ===
+company_name: "GreenTech Dynamics Inc."
+site_name: "Lyon HQ"
+domain_name: "greentech-dynamics.local"
+
+# === NTP ===
+ntp_servers:
+  - 10.100.200.10       # NTP interne primaire
+  - 10.100.200.11       # NTP interne secondaire
+  - 0.fr.pool.ntp.org   # NTP public fallback
+
+# === DNS ===
+dns_servers:
+  - 10.100.200.20       # DNS interne primaire
+  - 10.100.200.21       # DNS interne secondaire
+  - 1.1.1.1             # Cloudflare fallback
+
+# === Syslog ===
+syslog_servers:
+  - host: 10.100.200.30   # Splunk (SIEM)
+    protocol: tcp
+    port: 514
+  - host: 10.100.200.31   # Zabbix
+    protocol: udp
+    port: 514
+
+# === SNMP ===
+snmp_community_ro: "{{ lookup('env', 'SNMP_COMMUNITY_RO') }}"
+snmp_contact: "noc@greentech-dynamics.com"
+snmp_location: "Lyon, 45 Avenue Tony Garnier, 69007"
+
+# === RADIUS (NAC) ===
+radius_servers:
+  - host: 10.100.200.40   # Cisco ISE primaire
+    key: "{{ lookup('env', 'RADIUS_SECRET') }}"
+    port: 1812
+  - host: 10.100.200.41   # Cisco ISE secondaire
+    key: "{{ lookup('env', 'RADIUS_SECRET') }}"
+    port: 1812
+
+# === Bannière ===
+login_banner: |
+  ********************************************************************
+  *  ATTENTION — Système de GreenTech Dynamics Inc.                  *
+  *  Accès réservé aux personnes autorisées.                         *
+  *  Toute activité est journalisée et surveillée.                   *
+  *  Les accès non autorisés seront poursuivis conformément          *
+  *  à la législation en vigueur.                                    *
+  ********************************************************************

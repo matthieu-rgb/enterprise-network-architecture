@@ -1,0 +1,39 @@
+---
+# roles/security_hardening/tasks/main.yml
+# Durcissement sécurité couche 2 sur les switches d'accès :
+# port-security, DHCP snooping, storm control, BPDU guard,
+# Dynamic ARP Inspection, et désactivation des ports inutilisés
+
+- name: Deploy security hardening configuration
+  cisco.ios.ios_config:
+    src: security_hardening.j2
+  notify: save_config
+
+# --- Désactiver les ports non utilisés ---
+- name: Shutdown unused ports
+  cisco.ios.ios_config:
+    lines:
+      - shutdown
+      - switchport access vlan {{ vlan_native }}
+      - description UNUSED_PORT_DISABLED
+    parents: "interface {{ item }}"
+  loop: "{{ unused_ports | default([]) }}"
+
+# --- Activer DHCP Snooping ---
+- name: Enable DHCP Snooping globally
+  cisco.ios.ios_config:
+    lines:
+      - ip dhcp snooping
+      - ip dhcp snooping vlan 1-4094
+      - no ip dhcp snooping information option
+
+# --- Activer Dynamic ARP Inspection ---
+- name: Enable Dynamic ARP Inspection on user VLANs
+  cisco.ios.ios_config:
+    lines:
+      - "ip arp inspection vlan {{ user_vlans | join(',') }}"
+
+handlers:
+  - name: save_config
+    cisco.ios.ios_config:
+      save_when: modified

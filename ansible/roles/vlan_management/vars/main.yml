@@ -1,0 +1,70 @@
+---
+# roles/vlan_management/vars/main.yml
+# Définition de tous les VLANs du campus GreenTech Dynamics Lyon
+
+vlans:
+  - id: 10
+    name: VLAN_ACCUEIL
+    description: "Accueil et Showroom RDC"
+    subnet: "10.1.10.0/24"
+
+  - id: 20
+    name: VLAN_COMMERCIAL
+    description: "Commercial EMEA - Etage 1"
+    subnet: "10.1.20.0/24"
+
+  - id: 30
+    name: VLAN_FINANCE
+    description: "Finance et Comptabilite - Etage 2"
+    subnet: "10.1.30.0/24"
+
+  - id: 40
+    name: VLAN_RD_HW
+    description: "R&D Hardware - Etage 3"
+    subnet: "10.1.40.0/24"
+
+  - id: 41
+    name: VLAN_RD_SW
+    description: "R&D Software - Etage 4"
+    subnet: "10.1.41.0/24"
+
+  - id: 50
+    name: VLAN_IOT
+    description: "Equipements IoT - Isole, pas acces Internet"
+    subnet: "10.1.50.0/23"
+
+  - id: 60
+    name: VLAN_CAMERAS
+    description: "Cameras IP - Isole, flux NVR uniquement"
+    subnet: "10.1.60.0/24"
+
+  - id: 70
+    name: VLAN_VOIP
+    description: "Telephonie IP - QoS prioritaire"
+    subnet: "10.1.70.0/23"
+
+  - id: 80
+    name: VLAN_DIRECTION
+    description: "Direction et RH - Etage 5"
+    subnet: "10.1.80.0/24"
+
+  - id: 90
+    name: VLAN_IT_MGMT
+    description: "Management reseau et IT"
+    subnet: "10.1.90.0/24"
+
+  - id: 100
+    name: VLAN_GUEST
+    description: "Invites - Internet seul"
+    subnet: "10.1.100.0/24"
+
+  - id: 110
+    name: VLAN_QUARANTINE
+    description: "Quarantaine NAC - Remediation"
+    subnet: "10.1.110.0/24"
+
+# VLANs utilisateur (pour les ACL et le DAI)
+user_vlans: [10, 20, 30, 40, 41, 80]
+
+# VLAN Native (non utilisé, sécurité)
+vlan_native: 999

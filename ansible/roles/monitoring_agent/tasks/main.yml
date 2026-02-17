@@ -1,0 +1,30 @@
+---
+# roles/monitoring_agent/tasks/main.yml
+# Configure le monitoring sur tous les équipements réseau :
+# - SNMPv2c pour Zabbix (collecte de métriques)
+# - Syslog vers Splunk (SIEM) et Zabbix
+# - SNMP Traps pour les alertes critiques
+
+# --- Configurer SNMPv2c ---
+- name: Configure SNMP for Zabbix monitoring
+  cisco.ios.ios_config:
+    src: monitoring.j2
+  notify: save_config
+
+# --- Vérifier que SNMP répond ---
+- name: Verify SNMP is responding
+  cisco.ios.ios_command:
+    commands:
+      - show snmp
+      - show logging
+  register: monitoring_output
+
+- name: Display monitoring status
+  debug:
+    msg: "{{ monitoring_output.stdout_lines }}"
+    verbosity: 1
+
+handlers:
+  - name: save_config
+    cisco.ios.ios_config:
+      save_when: modified
