@@ -1,12 +1,12 @@
-# 🏢 Enterprise Network Architecture — GreenTech Dynamics
+#  Enterprise Network Architecture — GreenTech Dynamics
 
 > Conception d'une architecture réseau enterprise complète pour un siège social de 400 employés, incluant campus, datacenter, SD-WAN, NAC, automatisation GitOps et stratégie de sécurité en profondeur.
 
-📄 **[Article Medium détaillé](https://medium.com/@broquard.matthieu/)** — Le parcours complet avec les erreurs et les apprentissages
+ **[Article Medium détaillé](https://medium.com/@broquard.matthieu/)** — Le parcours complet avec les erreurs et les apprentissages
 
 ---
 
-## 📋 Le projet
+##  Le projet
 
 Exercice de synthèse réalisé dans le cadre de ma formation cybersécurité chez [Jedha Academy](https://www.jedha.co/). Le scénario : concevoir l'infrastructure réseau complète d'un nouveau siège social pour GreenTech Dynamics Inc., une entreprise spécialisée dans les solutions IoT pour bâtiments intelligents.
 
@@ -20,7 +20,7 @@ Exercice de synthèse réalisé dans le cadre de ma formation cybersécurité ch
 
 ---
 
-## 🏗 Architecture globale
+##  Architecture globale
 
 ```
                               INTERNET / CLOUD
@@ -54,7 +54,7 @@ Exercice de synthèse réalisé dans le cadre de ma formation cybersécurité ch
 
 ---
 
-## 🔑 Décisions techniques
+##  Décisions techniques
 
 ### Topologie réseau
 
@@ -99,7 +99,7 @@ Exercice de synthèse réalisé dans le cadre de ma formation cybersécurité ch
 
 ---
 
-## 📁 Contenu du repo
+##  Contenu du repo
 
 ```
 enterprise-network-architecture/
@@ -138,7 +138,7 @@ enterprise-network-architecture/
 
 ---
 
-## 🔐 Perspective cybersécurité
+##  Perspective cybersécurité
 
 Ce projet a été réalisé avec une double vision **défense + offensive**. Chaque choix de design a été évalué sous l'angle : "comment un attaquant contournerait ça ?"
 
@@ -152,7 +152,7 @@ Quelques exemples :
 
 ---
 
-## 🛠 Stack technique
+##  Stack technique
 
 **Réseau** : Cisco Catalyst (campus), Cisco Nexus ou Arista (datacenter), FortiGate (firewalls + SD-WAN)
 
@@ -166,7 +166,7 @@ Quelques exemples :
 
 ---
 
-## 📚 Contexte d'apprentissage
+##  Contexte d'apprentissage
 
 Ce projet fait partie de ma transition professionnelle vers la cybersécurité après 20 ans comme technicien diagnostic électronique dans l'automobile. Il synthétise les cours d'architecture réseau de ma formation Jedha :
 
@@ -176,13 +176,13 @@ Ce projet fait partie de ma transition professionnelle vers la cybersécurité a
 - NAC (Network Access Control)
 
 **Autres projets** :
-- 🔒 [VPN WireGuard sur AWS avec Terraform](https://github.com/matthieu-rgb)
-- 🐳 [Déploiement Flask avec Docker, Nginx et HTTPS](https://github.com/matthieu-rgb)
-- 🎯 Write-ups HTB & TryHackMe (à venir)
+-  [VPN WireGuard sur AWS avec Terraform](https://github.com/matthieu-rgb)
+-  [Déploiement Flask avec Docker, Nginx et HTTPS](https://github.com/matthieu-rgb)
+-   Write-ups HTB & TryHackMe (à venir)
 
 ---
 
-## 📬 Contact
+##  Contact
 
 - **Medium** : [@broquard.matthieu](https://medium.com/@broquard.matthieu/)
 - **GitHub** : [matthieu-rgb](https://github.com/matthieu-rgb)

@@ -1,8 +1,8 @@
 # GreenTech Dynamics Inc. — Dossier Technique Architecture Réseau
 
-> **Projet** : Siège Social Lyon — 45 Avenue Tony Garnier, 69007 Lyon
+> **Projet** : Siège Social Lyon 
 > **Version** : 1.0
-> **Classification** : Confidentiel — Usage Interne
+> **Classification** :Exercice pour ma formation jedha 
 > **Date** : Février 2026
 
 ---
@@ -864,6 +864,6 @@ ROI attendu :
 
 ---
 
-> **Document rédigé par** : [Nom]
+> **Document rédigé par** : Matthieu
 > **Validé par** : CTO GreenTech Dynamics Inc.
-> **Classification** : Confidentiel — Usage Interne
+> **Classification** : Exercice pour ma formation jedha
